@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+<head>
+    <!-- 文档编码 -->
+    <meta charset="utf-8">
+    <!-- 兼容低版本ie浏览器 -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- 为手机移动设备设计的，设计打开按此语句显示网页 -->
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <!-- 文档标题 -->
+    <title>公交线路查询</title>
+    <!-- css引入 -->
+    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css"/> 
+    <!-- 好像也是css引入 -->
+    <style type="text/css">
+       html,body,#container{
+           height:100%;
+       }
+    </style>
+</head>
+
+
+<body>
+<!-- 后面的id或者class 你可以理解为 这个div的“名字”。 -->
+<!-- 因为你写CSS或者JS的时候 需要用到这些 来精确到某个或某几个div。     -->
+<div id="container"></div>
+
+<div class="input-card" style='width:18rem;'>
+    <label style='color:grey'>公交线路查询(1.0测试版)_JC</label>
+    <div class="input-item">
+            <div class="input-item-prepend"><span class="input-item-text" >线路名称</span></div>
+            <input id='BusLineName' type="text" value='' >
+    </div>
+    <input id="search" type="button" class="btn" value="查询" />
+</div>
+
+<script type="text/javascript"
+            src="https://webapi.amap.com/maps?v=2.0&key=33f48cba6d018c58127d327707060e6a&plugin=AMap.LineSearch"></script>
+
+<script language="javascript">
+    /*
+     * 该示例主要流程分为三个步骤
+     * 1. 首先调用公交路线查询服务(lineSearch)
+     * 2. 根据返回结果解析，输出解析结果(lineSearch_Callback)
+     * 3. 在地图上绘制公交线路()
+     */
+    var map = new AMap.Map("container", {
+        mapStyle:'amap://styles/382fd2e652b976a7f43673a443f7d7cb',
+        resizeEnable: true,
+        center: [120.210792,30.246026],//地图中心点
+        zoom: 13//地图显示的缩放级别
+        
+    });
+    var linesearch;
+    /*公交线路查询*/
+    function lineSearch() {
+        var arr = document.getElementById('BusLineName').value.split(' ');
+        for(var i = 0;i < arr.length;i++){
+            busLineName = arr[i]
+        
+
+            if(!busLineName) return;
+            //实例化公交线路查询类，只取回一条路线
+            if(!linesearch){
+                linesearch = new AMap.LineSearch({
+                    pageIndex: 1,
+                    city: '杭州',
+                    pageSize: 1,
+                    extensions: 'all'
+                });
+            }
+            //搜索“536”相关公交线路
+            linesearch.search(busLineName, function(status, result) {
+                
+                if (status === 'complete' && result.info === 'OK') {
+                    lineSearch_Callback(result);
+                } else {
+                    alert(result);
+                }
+            });
+        }
+    }
+    /*公交路线查询服务返回数据解析概况*/
+    function lineSearch_Callback(data) {
+        var lineArr = data.lineInfo;
+        var lineNum = data.lineInfo.length;
+        if (lineNum == 0) {
+        } else {
+            for (var i = 0; i < lineNum; i++) {
+                var pathArr = lineArr[i].path;
+                var stops = lineArr[i].via_stops;
+                var startPot = stops[0].location;
+                var endPot = stops[stops.length - 1].location;
+                if (i == 0) //作为示例，只绘制一条线路
+                drawbusLine(startPot, endPot, pathArr);
+            
+            }
+        }
+    }
+    /*绘制路线*/
+    function drawbusLine(startPot, endPot, BusArr) {
+        //绘制起点，终点
+        new AMap.Marker({
+            map: map,
+            position: startPot, //基点位置
+            icon: "https://webapi.amap.com/theme/v1.3/markers/n/start.png",
+            zIndex: 10,
+            anchor: 'bottom-center',
+        });
+        new AMap.Marker({
+            map: map,
+            position: endPot, //基点位置
+            icon: "https://webapi.amap.com/theme/v1.3/markers/n/end.png",
+            zIndex: 10,
+            anchor: 'bottom-center',
+        });
+        //绘制乘车的路线
+        busPolyline = new AMap.Polyline({
+            map: map,
+            path: BusArr,
+            // strokeColor: "#09f",//线颜色
+            strokeColor:coloring(),
+            strokeOpacity: 0.8,//线透明度
+            isOutline:true,
+            outlineColor:'white',
+            strokeWeight: 6//线宽
+        });
+        // 将 busPolyline 显示在地图中心并自动缩放地图到合适级别。
+        // true表示需要动画过程，[60,200,60,60]表示上下左右避让像素
+        map.setFitView(busPolyline, true, [60,200,60,60]);
+      
+    }
+    // 随机颜色
+    function coloring() {
+        let r = Math.floor(Math.random() * 255)
+        let g = Math.floor(Math.random() * 255)
+        let b = Math.floor(Math.random() * 255)
+    return `rgb(${r}, ${g}, ${b})`
+    }
+
+
+    // 可删除，调用一次默认的公交名称
+    
+    // 点击按钮运行linesearch()函数，此语句的语法疑似不写括号
+    document.getElementById('search').onclick = lineSearch;
+</script>
+</body>
+</html>
